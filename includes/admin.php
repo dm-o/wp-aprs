@@ -26,6 +26,16 @@ function wp_aprs_admin_menu() {
         'wp-aprs',
         'wp_aprs_settings_page'
     );
+    
+    // Debug Seite
+    add_submenu_page(
+        'wp-aprs',
+        'WP-APRS Debug',
+        'Debug',
+        'manage_options',
+        'wp-aprs-debug',
+        'wp_aprs_debug_page'
+    );
 }
 add_action('admin_menu', 'wp_aprs_admin_menu');
 
@@ -109,7 +119,7 @@ function wp_aprs_settings_page() {
     // Export-Status anzeigen
     if (isset($_GET['export_status'])) {
         if ($_GET['export_status'] === 'success') {
-            echo '<div class="notice notice-success"><p>✅ Export erfolgreich abgeschonnen.</p></div>';
+            echo '<div class="notice notice-success"><p>✅ Export erfolgreich abgeschlossen.</p></div>';
         } elseif ($_GET['export_status'] === 'cancelled') {
             echo '<div class="notice notice-warning"><p>❌ Export abgebrochen.</p></div>';
         }
@@ -147,8 +157,16 @@ function wp_aprs_settings_page() {
                     <th scope="row"><label for="api_key_1">APRS.fi API-Schlüssel</label></th>
                     <td>
                         <input type="text" name="api_key_1" id="api_key_1" 
-                               value="<?php echo esc_attr($api_key_1); ?>" class="regular-text">
-                        <p class="description">API-Schlüssel von <a href="https://aprs.fi/" target="_blank">aprs.fi</a></p>
+                               value="<?php echo esc_attr($api_key_1); ?>" class="regular-text"
+                               pattern="[a-zA-Z0-9]{20,50}" 
+                               title="Ihr APRS.fi API-Schlüssel (20-50 alphanumerische Zeichen)">
+                        <button type="button" class="button button-secondary test-api-key" style="margin-left: 10px;">
+                            API-Schlüssel testen
+                        </button>
+                        <p class="description">
+                            API-Schlüssel von <a href="https://aprs.fi/" target="_blank">aprs.fi</a><br>
+                            <small>Format: 20-50 alphanumerische Zeichen (keine Sonderzeichen)</small>
+                        </p>
                     </td>
                 </tr>
             </table>
@@ -189,7 +207,12 @@ function wp_aprs_settings_page() {
                         <th scope="row"><label for="api_key_2">Zweiter API-Schlüssel</label></th>
                         <td>
                             <input type="text" name="api_key_2" id="api_key_2" 
-                                   value="<?php echo esc_attr($api_key_2); ?>" class="regular-text">
+                                   value="<?php echo esc_attr($api_key_2); ?>" class="regular-text"
+                                   pattern="[a-zA-Z0-9]{20,50}" 
+                                   title="Optionaler zweiter API-Schlüssel (20-50 alphanumerische Zeichen)">
+                            <button type="button" class="button button-secondary test-api-key" style="margin-left: 10px;">
+                                API-Schlüssel testen
+                            </button>
                             <p class="description">Optionaler zweiter API-Schlüssel für zusätzliche Rufzeichen</p>
                         </td>
                     </tr>
@@ -448,6 +471,139 @@ function wp_aprs_handle_export() {
     unlink($temp_file);
     
     exit;
+}
+
+// Debug Seite
+function wp_aprs_debug_page() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    
+    $api_key_1 = get_option('wp_aprs_api_key_1', '');
+    $api_key_2 = get_option('wp_aprs_api_key_2', '');
+    $test_result = null;
+    
+    if (isset($_POST['test_api_key'])) {
+        $api_key_to_test = sanitize_text_field($_POST['api_key_to_test']);
+        $test_result = wp_aprs_test_api_key($api_key_to_test);
+    }
+    ?>
+    <div class="wrap">
+        <h1>WP-APRS Debug</h1>
+        
+        <h2>API-Schlüssel Test</h2>
+        <form method="post">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="api_key_to_test">API-Schlüssel testen</label></th>
+                    <td>
+                        <input type="text" name="api_key_to_test" id="api_key_to_test" class="regular-text" 
+                               placeholder="Geben Sie einen API-Schlüssel zum Testen ein">
+                        <?php submit_button('API-Schlüssel testen', 'primary', 'test_api_key', false); ?>
+                    </td>
+                </tr>
+            </table>
+        </form>
+        
+        <?php if ($test_result): ?>
+        <div class="notice notice-<?php echo $test_result['success'] ? 'success' : 'error'; ?>">
+            <p><strong>Test Ergebnis:</strong> <?php echo esc_html($test_result['message']); ?></p>
+        </div>
+        <?php endif; ?>
+        
+        <h2>Gespeicherte Einstellungen</h2>
+        <table class="widefat">
+            <thead>
+                <tr>
+                    <th>Einstellung</th>
+                    <th>Wert</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>API-Schlüssel 1</td>
+                    <td><?php echo esc_html($api_key_1 ? '***' . substr($api_key_1, -4) : 'Nicht gesetzt'); ?></td>
+                </tr>
+                <tr>
+                    <td>API-Schlüssel 2</td>
+                    <td><?php echo esc_html($api_key_2 ? '***' . substr($api_key_2, -4) : 'Nicht gesetzt'); ?></td>
+                </tr>
+                <tr>
+                    <td>Rufzeichen 1</td>
+                    <td><?php echo esc_html(implode(', ', get_option('wp_aprs_callsigns_1', array()))); ?></td>
+                </tr>
+                <tr>
+                    <td>Rufzeichen 2</td>
+                    <td><?php echo esc_html(implode(', ', get_option('wp_aprs_callsigns_2', array()))); ?></td>
+                </tr>
+                <tr>
+                    <td>Cache Einträge</td>
+                    <td><?php echo count(get_option('wp_aprs_cache', array())); ?></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>Systeminformationen</h2>
+        <table class="widefat">
+            <tbody>
+                <tr>
+                    <td>PHP Version</td>
+                    <td><?php echo phpversion(); ?></td>
+                </tr>
+                <tr>
+                    <td>WordPress Version</td>
+                    <td><?php echo get_bloginfo('version'); ?></td>
+                </tr>
+                <tr>
+                    <td>cURL Unterstützung</td>
+                    <td><?php echo function_exists('curl_init') ? 'Ja' : 'Nein'; ?></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <?php
+}
+
+// API-Key Test Funktion
+function wp_aprs_test_api_key($api_key) {
+    if (empty($api_key)) {
+        return array('success' => false, 'message' => 'API-Schlüssel ist leer');
+    }
+    
+    // Validierung des Formats
+    if (strlen($api_key) < 20 || strlen($api_key) > 50 || !preg_match('/^[a-zA-Z0-9]+$/', $api_key)) {
+        return array('success' => false, 'message' => 'Ungültiges Format (20-50 alphanumerische Zeichen erforderlich)');
+    }
+    
+    // Einfachen Test-Call machen
+    $url = "https://api.aprs.fi/api/get?name=DO6DAD-7&what=loc&apikey={$api_key}&format=json";
+    
+    $response = wp_remote_get($url, array(
+        'timeout' => 15,
+        'sslverify' => true,
+        'headers' => array(
+            'User-Agent' => 'WP-APRS-Plugin/1.0'
+        )
+    ));
+    
+    if (is_wp_error($response)) {
+        return array('success' => false, 'message' => 'Netzwerkfehler: ' . $response->get_error_message());
+    }
+    
+    $response_code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+    
+    if ($response_code === 200) {
+        if (isset($data['result']) && $data['result'] === 'ok') {
+            return array('success' => true, 'message' => 'API-Schlüssel ist gültig und funktioniert');
+        } else {
+            $error = isset($data['description']) ? $data['description'] : 'Unbekannter Fehler';
+            return array('success' => false, 'message' => 'API-Fehler: ' . $error);
+        }
+    } else {
+        return array('success' => false, 'message' => "HTTP Fehler: {$response_code}");
+    }
 }
 
 // Admin-Skripte und Styles

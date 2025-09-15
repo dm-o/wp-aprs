@@ -4,42 +4,68 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// APRS.fi API abfragen
+// APRS.fi API abfragen - Robustere Version
 function wp_aprs_query_api($api_key, $callsigns) {
     if (empty($api_key) || empty($callsigns)) {
         return false;
     }
     
     // Cache prüfen
-    $cache_key = 'aprs_data_' . md5(implode(',', $callsigns));
+    $cache_key = 'aprs_data_' . md5(implode(',', $callsigns) . '_' . $api_key);
     $cached_data = wp_aprs_get_cache($cache_key);
     
     if ($cached_data !== false) {
         return $cached_data;
     }
     
-    // API-URL erstellen
-    $callsign_string = implode(',', array_map('urlencode', $callsigns));
-    $url = "https://api.aprs.fi/api/get?name={$callsign_string}&what=loc&apikey={$api_key}&format=json";
+    // API-URL erstellen (max. 10 Callsigns pro Request)
+    $chunked_callsigns = array_chunk($callsigns, 10);
+    $all_entries = array();
     
-    // API abfragen
-    $response = wp_remote_get($url, array(
-        'timeout' => 15,
-        'sslverify' => false
-    ));
-    
-    if (is_wp_error($response)) {
-        error_log('WP-APRS API Fehler: ' . $response->get_error_message());
-        return false;
+    foreach ($chunked_callsigns as $chunk) {
+        $callsign_string = implode(',', array_map('urlencode', $chunk));
+        $url = "https://api.aprs.fi/api/get?name={$callsign_string}&what=loc&apikey={$api_key}&format=json";
+        
+        // API abfragen mit besserem Error Handling
+        $response = wp_remote_get($url, array(
+            'timeout' => 20,
+            'sslverify' => true,
+            'headers' => array(
+                'User-Agent' => 'WP-APRS-Plugin/1.0'
+            )
+        ));
+        
+        if (is_wp_error($response)) {
+            error_log('WP-APRS API Fehler: ' . $response->get_error_message());
+            continue;
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        if ($response_code !== 200) {
+            error_log("WP-APRS API HTTP Fehler: {$response_code}");
+            continue;
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+        
+        if ($data && isset($data['result']) && $data['result'] === 'ok') {
+            if (isset($data['entries']) && is_array($data['entries'])) {
+                $all_entries = array_merge($all_entries, $data['entries']);
+            }
+        } else {
+            // API Fehler logging
+            $error_msg = isset($data['description']) ? $data['description'] : 'Unknown error';
+            error_log("WP-APRS API Error: {$error_msg}");
+        }
+        
+        // Kurze Pause zwischen Requests
+        usleep(500000); // 0.5 seconds
     }
     
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
-    
-    if ($data && isset($data['found']) && $data['found'] > 0) {
-        // Daten cachen
-        wp_aprs_set_cache($cache_key, $data['entries'], WP_APRS_CACHE_TIME);
-        return $data['entries'];
+    if (!empty($all_entries)) {
+        wp_aprs_set_cache($cache_key, $all_entries, WP_APRS_CACHE_TIME);
+        return $all_entries;
     }
     
     return false;
@@ -202,3 +228,46 @@ function wp_aprs_get_all_positions() {
     
     return $positions;
 }
+
+// AJAX Handler für API-Key Testing
+function wp_aprs_ajax_test_api_key() {
+    check_ajax_referer('wp_aprs_admin_nonce', 'nonce');
+    
+    if (!current_user_can('manage_options')) {
+        wp_die('Unauthorized');
+    }
+    
+    $api_key = isset($_POST['api_key']) ? sanitize_text_field($_POST['api_key']) : '';
+    
+    if (empty($api_key)) {
+        wp_send_json_error(array('message' => 'API-Schlüssel ist leer'));
+    }
+    
+    // Einfachen Test-Call machen
+    $url = "https://api.aprs.fi/api/get?name=DO6DAD-7&what=loc&apikey={$api_key}&format=json";
+    
+    $response = wp_remote_get($url, array(
+        'timeout' => 15,
+        'sslverify' => true
+    ));
+    
+    if (is_wp_error($response)) {
+        wp_send_json_error(array('message' => 'Netzwerkfehler: ' . $response->get_error_message()));
+    }
+    
+    $response_code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+    
+    if ($response_code === 200) {
+        if (isset($data['result']) && $data['result'] === 'ok') {
+            wp_send_json_success(array('message' => 'API-Schlüssel ist gültig und funktioniert'));
+        } else {
+            $error = isset($data['description']) ? $data['description'] : 'Unbekannter Fehler';
+            wp_send_json_error(array('message' => 'API-Fehler: ' . $error));
+        }
+    } else {
+        wp_send_json_error(array('message' => "HTTP Fehler: {$response_code}"));
+    }
+}
+add_action('wp_ajax_wp_aprs_test_api_key', 'wp_aprs_ajax_test_api_key');

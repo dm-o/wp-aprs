@@ -42,6 +42,97 @@ jQuery(document).ready(function($) {
         return callsign.length >= 3 && /^[A-Z0-9-]+$/i.test(callsign);
     }
     
+    // APRS.fi API Key Validation - Korrigiert
+    function isValidApiKey(apiKey) {
+        // APRS.fi Keys können verschiedene Formate haben:
+        // - Alphanumerisch, 20-50 Zeichen
+        // - Enthält oft Zahlen und Buchstaben
+        return apiKey.length >= 20 && 
+               apiKey.length <= 50 && 
+               /^[a-zA-Z0-9]+$/.test(apiKey);
+    }
+    
+    // API Key Validation - Korrigierte Version
+    function validateApiKey($input) {
+        var value = $input.val().trim();
+        if (value.length === 0) {
+            $input.css('border-color', '');
+            $input.next('.api-key-status').remove();
+        } else if (isValidApiKey(value)) {
+            $input.css('border-color', '#46b450');
+            updateApiKeyStatus($input, '✅ Gültiger API-Schlüssel', 'success');
+        } else {
+            $input.css('border-color', '#dc3232');
+            updateApiKeyStatus($input, '❌ Überprüfen Sie das Format (20-50 alphanumerische Zeichen)', 'error');
+        }
+    }
+    
+    function updateApiKeyStatus($input, message, type) {
+        var $status = $input.next('.api-key-status');
+        if (!$status.length) {
+            $input.after('<span class="api-key-status" style="display: block; font-size: 12px; margin-top: 5px;"></span>');
+            $status = $input.next('.api-key-status');
+        }
+        
+        $status.text(message).css('color', type === 'success' ? '#46b450' : '#dc3232');
+    }
+    
+    // Initial API Key validation
+    $('input[name="api_key_1"], input[name="api_key_2"]').each(function() {
+        validateApiKey($(this));
+    });
+    
+    // Live API Key validation
+    $('input[name="api_key_1"], input[name="api_key_2"]').on('input', function() {
+        validateApiKey($(this));
+    });
+    
+    // API Test Button Handler
+    $(document).on('click', '.test-api-key', function(e) {
+        e.preventDefault();
+        var $button = $(this);
+        var $input = $button.prev('input');
+        var apiKey = $input.val().trim();
+        
+        if (!apiKey) {
+            alert('Bitte geben Sie zuerst einen API-Schlüssel ein.');
+            return;
+        }
+        
+        if (!isValidApiKey(apiKey)) {
+            alert('Bitte geben Sie einen gültigen API-Schlüssel ein (20-50 alphanumerische Zeichen).');
+            return;
+        }
+        
+        $button.text('Teste...').prop('disabled', true);
+        
+        // AJAX Request zum Testen des API-Keys
+        $.ajax({
+            url: wpAprsAdmin.ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'wp_aprs_test_api_key',
+                api_key: apiKey,
+                nonce: wpAprsAdmin.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('✅ ' + response.message);
+                    $input.css('border-color', '#46b450');
+                } else {
+                    alert('❌ ' + response.message);
+                    $input.css('border-color', '#dc3232');
+                }
+            },
+            error: function() {
+                alert('❌ Fehler beim Testen des API-Schlüssels.');
+            },
+            complete: function() {
+                $button.text('API-Schlüssel testen').prop('disabled', false);
+            }
+        });
+    });
+    
     // Export Popup Modal erstellen
     function createExportModal() {
         if ($('#wp-aprs-export-modal').length === 0) {
@@ -170,39 +261,4 @@ jQuery(document).ready(function($) {
     // Initial und bei Resize
     handleResponsive();
     $(window).resize(handleResponsive);
-    
-    // API Key Validation
-    function validateApiKey($input) {
-        var value = $input.val().trim();
-        if (value.length === 0) {
-            $input.css('border-color', '');
-            $input.next('.api-key-status').remove();
-        } else if (value.length === 32 && /^[a-zA-Z0-9]+$/.test(value)) {
-            $input.css('border-color', '#46b450');
-            updateApiKeyStatus($input, '✅ Gültiger API-Schlüssel', 'success');
-        } else {
-            $input.css('border-color', '#dc3232');
-            updateApiKeyStatus($input, '❌ Ungültiges Format', 'error');
-        }
-    }
-    
-    function updateApiKeyStatus($input, message, type) {
-        var $status = $input.next('.api-key-status');
-        if (!$status.length) {
-            $input.after('<span class="api-key-status" style="display: block; font-size: 12px; margin-top: 5px;"></span>');
-            $status = $input.next('.api-key-status');
-        }
-        
-        $status.text(message).css('color', type === 'success' ? '#46b450' : '#dc3232');
-    }
-    
-    // Initial API Key validation
-    $('input[name="api_key_1"], input[name="api_key_2"]').each(function() {
-        validateApiKey($(this));
-    });
-    
-    // Live API Key validation
-    $('input[name="api_key_1"], input[name="api_key_2"]').on('input', function() {
-        validateApiKey($(this));
-    });
 });

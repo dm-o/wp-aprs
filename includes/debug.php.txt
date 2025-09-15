@@ -1,0 +1,170 @@
+<?php
+// Debug-Funktionen für API-Key Testing
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// API-Key Test Funktion
+function wp_aprs_test_api_key($api_key) {
+    if (empty($api_key)) {
+        return array('success' => false, 'message' => 'API-Schlüssel ist leer');
+    }
+    
+    // Validierung des Formats
+    if (strlen($api_key) < 20 || strlen($api_key) > 50 || !preg_match('/^[a-zA-Z0-9]+$/', $api_key)) {
+        return array('success' => false, 'message' => 'Ungültiges Format (20-50 alphanumerische Zeichen erforderlich)');
+    }
+    
+    // Einfachen Test-Call machen
+    $url = "https://api.aprs.fi/api/get?name=DO6DAD-7&what=loc&apikey={$api_key}&format=json";
+    
+    $response = wp_remote_get($url, array(
+        'timeout' => 15,
+        'sslverify' => true,
+        'headers' => array(
+            'User-Agent' => 'WP-APRS-Plugin/1.0'
+        )
+    ));
+    
+    if (is_wp_error($response)) {
+        return array('success' => false, 'message' => 'Netzwerkfehler: ' . $response->get_error_message());
+    }
+    
+    $response_code = wp_remote_retrieve_response_code($response);
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+    
+    if ($response_code === 200) {
+        if (isset($data['result']) && $data['result'] === 'ok') {
+            return array('success' => true, 'message' => 'API-Schlüssel ist gültig und funktioniert');
+        } else {
+            $error = isset($data['description']) ? $data['description'] : 'Unbekannter Fehler';
+            return array('success' => false, 'message' => 'API-Fehler: ' . $error);
+        }
+    } else {
+        return array('success' => false, 'message' => "HTTP Fehler: {$response_code}");
+    }
+}
+
+// Debug Seite hinzufügen
+function wp_aprs_debug_menu() {
+    add_submenu_page(
+        'wp-aprs',
+        'WP-APRS Debug',
+        'Debug',
+        'manage_options',
+        'wp-aprs-debug',
+        'wp_aprs_debug_page'
+    );
+}
+add_action('admin_menu', 'wp_aprs_debug_menu');
+
+// Debug Seite
+function wp_aprs_debug_page() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    
+    $api_key_1 = get_option('wp_aprs_api_key_1', '');
+    $api_key_2 = get_option('wp_aprs_api_key_2', '');
+    $test_result = null;
+    
+    if (isset($_POST['test_api_key'])) {
+        $api_key_to_test = sanitize_text_field($_POST['api_key_to_test']);
+        $test_result = wp_aprs_test_api_key($api_key_to_test);
+    }
+    ?>
+    <div class="wrap">
+        <h1>WP-APRS Debug</h1>
+        
+        <h2>API-Schlüssel Test</h2>
+        <form method="post">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="api_key_to_test">API-Schlüssel testen</label></th>
+                    <td>
+                        <input type="text" name="api_key_to_test" id="api_key_to_test" class="regular-text" 
+                               placeholder="Geben Sie einen API-Schlüssel zum Testen ein">
+                        <?php submit_button('API-Schlüssel testen', 'primary', 'test_api_key', false); ?>
+                    </td>
+                </tr>
+            </table>
+        </form>
+        
+        <?php if ($test_result): ?>
+        <div class="notice notice-<?php echo $test_result['success'] ? 'success' : 'error'; ?>">
+            <p><strong>Test Ergebnis:</strong> <?php echo esc_html($test_result['message']); ?></p>
+        </div>
+        <?php endif; ?>
+        
+        <h2>Gespeicherte Einstellungen</h2>
+        <table class="widefat">
+            <thead>
+                <tr>
+                    <th>Einstellung</th>
+                    <th>Wert</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>API-Schlüssel 1</td>
+                    <td><?php echo esc_html($api_key_1 ? '***' . substr($api_key_1, -4) : 'Nicht gesetzt'); ?></td>
+                </tr>
+                <tr>
+                    <td>API-Schlüssel 2</td>
+                    <td><?php echo esc_html($api_key_2 ? '***' . substr($api_key_2, -4) : 'Nicht gesetzt'); ?></td>
+                </tr>
+                <tr>
+                    <td>Rufzeichen 1</td>
+                    <td><?php echo esc_html(implode(', ', get_option('wp_aprs_callsigns_1', array()))); ?></td>
+                </tr>
+                <tr>
+                    <td>Rufzeichen 2</td>
+                    <td><?php echo esc_html(implode(', ', get_option('wp_aprs_callsigns_2', array()))); ?></td>
+                </tr>
+                <tr>
+                    <td>Cache Einträge</td>
+                    <td><?php echo count(get_option('wp_aprs_cache', array())); ?></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>Systeminformationen</h2>
+        <table class="widefat">
+            <tbody>
+                <tr>
+                    <td>PHP Version</td>
+                    <td><?php echo phpversion(); ?></td>
+                </tr>
+                <tr>
+                    <td>WordPress Version</td>
+                    <td><?php echo get_bloginfo('version'); ?></td>
+                </tr>
+                <tr>
+                    <td>cURL Unterstützung</td>
+                    <td><?php echo function_exists('curl_init') ? 'Ja' : 'Nein'; ?></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <?php
+}
+
+// Debug Shortcode
+function wp_aprs_debug_shortcode() {
+    if (!current_user_can('manage_options')) {
+        return '';
+    }
+    
+    ob_start();
+    ?>
+    <div style="background: #f0f0f0; padding: 15px; border: 1px solid #ccc; margin: 10px 0;">
+        <h3>WP-APRS Debug Info</h3>
+        <p><strong>API-Schlüssel 1:</strong> <?php echo get_option('wp_aprs_api_key_1') ? 'Gesetzt' : 'Nicht gesetzt'; ?></p>
+        <p><strong>API-Schlüssel 2:</strong> <?php echo get_option('wp_aprs_api_key_2') ? 'Gesetzt' : 'Nicht gesetzt'; ?></p>
+        <p><strong>Rufzeichen:</strong> <?php echo count(get_option('wp_aprs_callsigns_1', array())) + count(get_option('wp_aprs_callsigns_2', array())); ?></p>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('wp-aprs-debug', 'wp_aprs_debug_shortcode');
