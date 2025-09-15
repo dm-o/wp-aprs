@@ -1,0 +1,29 @@
+# WordPress ignore
+.DS_Store
+Thumbs.db
+*.log
+*.sql
+*.zip
+
+# OS generated files
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Composer
+vendor/
+composer.lock
+
+# Local config
+wp-config-local.php
