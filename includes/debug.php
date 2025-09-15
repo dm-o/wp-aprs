@@ -4,15 +4,15 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// API-Key Test Funktion
+// API-Key Test Funktion - mit erweiterten Zeichen
 function wp_aprs_test_api_key($api_key) {
     if (empty($api_key)) {
         return array('success' => false, 'message' => 'API-Schlüssel ist leer');
     }
     
-    // Validierung des Formats
-    if (strlen($api_key) < 20 || strlen($api_key) > 50 || !preg_match('/^[a-zA-Z0-9]+$/', $api_key)) {
-        return array('success' => false, 'message' => 'Ungültiges Format (20-50 alphanumerische Zeichen erforderlich)');
+    // Validierung des Formats mit erweiterten Zeichen
+    if (strlen($api_key) < 20 || strlen($api_key) > 50 || !preg_match('/^[a-zA-Z0-9._-]+$/', $api_key)) {
+        return array('success' => false, 'message' => 'Ungültiges Format (20-50 Zeichen, erlaubt: A-Z a-z 0-9 . _ -)');
     }
     
     // Einfachen Test-Call machen

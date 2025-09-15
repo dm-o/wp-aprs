@@ -154,21 +154,21 @@ function wp_aprs_settings_page() {
             <h2>API-Einstellungen</h2>
             <table class="form-table">
                 <tr>
-                    <th scope="row"><label for="api_key_1">APRS.fi API-Schlüssel</label></th>
-                    <td>
-                        <input type="text" name="api_key_1" id="api_key_1" 
-                               value="<?php echo esc_attr($api_key_1); ?>" class="regular-text"
-                               pattern="[a-zA-Z0-9]{20,50}" 
-                               title="Ihr APRS.fi API-Schlüssel (20-50 alphanumerische Zeichen)">
-                        <button type="button" class="button button-secondary test-api-key" style="margin-left: 10px;">
-                            API-Schlüssel testen
-                        </button>
-                        <p class="description">
-                            API-Schlüssel von <a href="https://aprs.fi/" target="_blank">aprs.fi</a><br>
-                            <small>Format: 20-50 alphanumerische Zeichen (keine Sonderzeichen)</small>
-                        </p>
-                    </td>
-                </tr>
+    <th scope="row"><label for="api_key_1">APRS.fi API-Schlüssel</label></th>
+    <td>
+        <input type="text" name="api_key_1" id="api_key_1" 
+               value="<?php echo esc_attr($api_key_1); ?>" class="regular-text"
+               pattern="[a-zA-Z0-9._-]{20,50}" 
+               title="Ihr APRS.fi API-Schlüssel (20-50 Zeichen, erlaubt: Buchstaben, Zahlen, Punkt, Unterstrich, Bindestrich)">
+        <button type="button" class="button button-secondary test-api-key" style="margin-left: 10px;">
+            API-Schlüssel testen
+        </button>
+        <p class="description">
+            API-Schlüssel von <a href="https://aprs.fi/" target="_blank">aprs.fi</a><br>
+            <small>Format: 20-50 Zeichen (erlaubt: A-Z a-z 0-9 . _ -)</small>
+        </p>
+    </td>
+</tr>
             </table>
             
             <h2>Rufzeichen (1-20) <small style="font-weight: normal; color: #666;">Hinweis: pro API-Schlüssel können maximal 20 Rufzeichen abgerufen werden!</small></h2>
@@ -204,18 +204,18 @@ function wp_aprs_settings_page() {
             <div id="more-callsigns-section" style="<?php echo $more_callsigns ? '' : 'display: none;'; ?>">
                 <table class="form-table">
                     <tr>
-                        <th scope="row"><label for="api_key_2">Zweiter API-Schlüssel</label></th>
-                        <td>
-                            <input type="text" name="api_key_2" id="api_key_2" 
-                                   value="<?php echo esc_attr($api_key_2); ?>" class="regular-text"
-                                   pattern="[a-zA-Z0-9]{20,50}" 
-                                   title="Optionaler zweiter API-Schlüssel (20-50 alphanumerische Zeichen)">
-                            <button type="button" class="button button-secondary test-api-key" style="margin-left: 10px;">
-                                API-Schlüssel testen
-                            </button>
-                            <p class="description">Optionaler zweiter API-Schlüssel für zusätzliche Rufzeichen</p>
-                        </td>
-                    </tr>
+    <th scope="row"><label for="api_key_2">Zweiter API-Schlüssel</label></th>
+    <td>
+        <input type="text" name="api_key_2" id="api_key_2" 
+               value="<?php echo esc_attr($api_key_2); ?>" class="regular-text"
+               pattern="[a-zA-Z0-9._-]{20,50}" 
+               title="Optionaler zweiter API-Schlüssel (20-50 Zeichen, erlaubt: Buchstaben, Zahlen, Punkt, Unterstrich, Bindestrich)">
+        <button type="button" class="button button-secondary test-api-key" style="margin-left: 10px;">
+            API-Schlüssel testen
+        </button>
+        <p class="description">Optionaler zweiter API-Schlüssel für zusätzliche Rufzeichen</p>
+    </td>
+</tr>
                 </table>
                 
                 <h2>Zusätzliche Rufzeichen (21-40) <small style="font-weight: normal; color: #666;">Hinweis: pro API-Schlüssel können maximal 20 Rufzeichen abgerufen werden!</small></h2>

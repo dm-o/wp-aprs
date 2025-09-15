@@ -37,6 +37,12 @@
     font-family: dashicons;
 }
 
+/* Bessere Beschreibung für API-Key Felder */
+.form-table .description small {
+    display: block;
+    margin-top: 5px;
+    color: #666
+
 /* Responsive Design */
 @media screen and (max-width: 782px) {
     .form-table th {

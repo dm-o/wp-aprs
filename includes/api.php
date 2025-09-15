@@ -4,9 +4,34 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// API-Key Validierung in PHP
+function wp_aprs_validate_api_key($api_key) {
+    if (empty($api_key)) {
+        return false;
+    }
+    
+    // Länge prüfen
+    if (strlen($api_key) < 20 || strlen($api_key) > 50) {
+        return false;
+    }
+    
+    // Zeichen prüfen - erlaubt: alphanumerisch, Punkt, Unterstrich, Bindestrich
+    if (!preg_match('/^[a-zA-Z0-9._-]+$/', $api_key)) {
+        return false;
+    }
+    
+    return true;
+}
+
 // APRS.fi API abfragen - Robustere Version
 function wp_aprs_query_api($api_key, $callsigns) {
     if (empty($api_key) || empty($callsigns)) {
+        return false;
+    }
+    
+    // API-Key Validierung
+    if (!wp_aprs_validate_api_key($api_key)) {
+        error_log('WP-APRS: Ungültiger API-Key Format');
         return false;
     }
     
@@ -18,7 +43,7 @@ function wp_aprs_query_api($api_key, $callsigns) {
         return $cached_data;
     }
     
-    // API-URL erstellen (max. 10 Callsigns pro Request)
+    // API-URL erstellen (max. 10 Callsigns per Request)
     $chunked_callsigns = array_chunk($callsigns, 10);
     $all_entries = array();
     
@@ -243,12 +268,20 @@ function wp_aprs_ajax_test_api_key() {
         wp_send_json_error(array('message' => 'API-Schlüssel ist leer'));
     }
     
+    // API-Key Validierung
+    if (!wp_aprs_validate_api_key($api_key)) {
+        wp_send_json_error(array('message' => 'Ungültiges Format (20-50 Zeichen, erlaubt: A-Z a-z 0-9 . _ -)'));
+    }
+    
     // Einfachen Test-Call machen
     $url = "https://api.aprs.fi/api/get?name=DO6DAD-7&what=loc&apikey={$api_key}&format=json";
     
     $response = wp_remote_get($url, array(
         'timeout' => 15,
-        'sslverify' => true
+        'sslverify' => true,
+        'headers' => array(
+            'User-Agent' => 'WP-APRS-Plugin/1.0'
+        )
     ));
     
     if (is_wp_error($response)) {

@@ -42,14 +42,14 @@ jQuery(document).ready(function($) {
         return callsign.length >= 3 && /^[A-Z0-9-]+$/i.test(callsign);
     }
     
-    // APRS.fi API Key Validation - Korrigiert
+    // APRS.fi API Key Validation - Korrigiert für erweiterte Zeichen
     function isValidApiKey(apiKey) {
         // APRS.fi Keys können verschiedene Formate haben:
         // - Alphanumerisch, 20-50 Zeichen
-        // - Enthält oft Zahlen und Buchstaben
+        // - Enthält oft Zahlen, Buchstaben und Sonderzeichen (. _ -)
         return apiKey.length >= 20 && 
                apiKey.length <= 50 && 
-               /^[a-zA-Z0-9]+$/.test(apiKey);
+               /^[a-zA-Z0-9._-]+$/.test(apiKey);
     }
     
     // API Key Validation - Korrigierte Version
@@ -63,7 +63,7 @@ jQuery(document).ready(function($) {
             updateApiKeyStatus($input, '✅ Gültiger API-Schlüssel', 'success');
         } else {
             $input.css('border-color', '#dc3232');
-            updateApiKeyStatus($input, '❌ Überprüfen Sie das Format (20-50 alphanumerische Zeichen)', 'error');
+            updateApiKeyStatus($input, '❌ Überprüfen Sie das Format (20-50 Zeichen, erlaubt: A-Z a-z 0-9 . _ -)', 'error');
         }
     }
     
@@ -100,7 +100,7 @@ jQuery(document).ready(function($) {
         }
         
         if (!isValidApiKey(apiKey)) {
-            alert('Bitte geben Sie einen gültigen API-Schlüssel ein (20-50 alphanumerische Zeichen).');
+            alert('Bitte geben Sie einen gültigen API-Schlüssel ein (20-50 Zeichen, erlaubt: A-Z a-z 0-9 . _ -).');
             return;
         }
         
