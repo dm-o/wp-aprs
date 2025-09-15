@@ -22,7 +22,7 @@ node_modules/
 npm-debug.log*
 
 # Composer
-vendor/
+#vendor/
 composer.lock
 
 # Local config

@@ -40,6 +40,7 @@ function wp_aprs_activate() {
     add_option('wp_aprs_more_callsigns', false);
     add_option('wp_aprs_map_center', 'JO63HH');
     add_option('wp_aprs_map_size', '');
+    add_option('wp_aprs_map_style', 'osm_standard'); // NEU: Standard-Kartenstil
     add_option('wp_aprs_cache', array());
 }
 
@@ -59,6 +60,7 @@ function wp_aprs_uninstall() {
     delete_option('wp_aprs_more_callsigns');
     delete_option('wp_aprs_map_center');
     delete_option('wp_aprs_map_size');
+    delete_option('wp_aprs_map_style'); // NEU: Kartenstil-Einstellung löschen
     delete_option('wp_aprs_cache');
 }
 

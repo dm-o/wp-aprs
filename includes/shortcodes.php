@@ -27,6 +27,8 @@ function wp_aprs_map_shortcode($atts) {
         }
     }
     
+    $map_style = get_option('wp_aprs_map_style', 'osm_standard');
+    
     static $map_count = 0;
     $map_count++;
     $map_id = 'wp-aprs-map-' . $map_count;
@@ -35,7 +37,8 @@ function wp_aprs_map_shortcode($atts) {
         'id' => $map_id,
         'center' => $center,
         'positions' => $positions,
-        'style' => $size_style
+        'style' => $size_style,
+        'map_style' => $map_style
     );
     
     wp_enqueue_style('leaflet', WP_APRS_PLUGIN_URL . 'vendor/leaflet/leaflet.css', array(), '1.7.1');

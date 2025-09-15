@@ -49,6 +49,7 @@ function wp_aprs_settings_page() {
         
         update_option('wp_aprs_map_center', sanitize_text_field($_POST['map_center']));
         update_option('wp_aprs_map_size', sanitize_text_field($_POST['map_size']));
+        update_option('wp_aprs_map_style', sanitize_text_field($_POST['map_style']));
         
         echo '<div class="notice notice-success"><p>Einstellungen gespeichert.</p></div>';
     }
@@ -60,6 +61,16 @@ function wp_aprs_settings_page() {
     $callsigns_2 = get_option('wp_aprs_callsigns_2');
     $map_center = get_option('wp_aprs_map_center');
     $map_size = get_option('wp_aprs_map_size');
+    $map_style = get_option('wp_aprs_map_style', 'osm_standard');
+    
+    $available_styles = array(
+        'osm_standard' => 'OpenStreetMap Standard',
+        'osm_de' => 'OpenStreetMap DE',
+        'osm_hot' => 'Humanitarian OSM',
+        'topo' => 'Topographic Map',
+        'cyclosm' => 'Cycle OSM',
+        'dark' => 'Dark Mode'
+    );
     ?>
     <div class="wrap">
         <h1>WP-APRS Einstellungen</h1>
@@ -141,6 +152,19 @@ function wp_aprs_settings_page() {
                     <td>
                         <input type="text" name="map_size" id="map_size" value="<?php echo esc_attr($map_size); ?>" class="regular-text">
                         <p class="description">Format: BreitexHöhe (z.B. 800x600)</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="map_style">Kartenstil</label></th>
+                    <td>
+                        <select name="map_style" id="map_style" class="regular-text">
+                            <?php foreach ($available_styles as $value => $label): ?>
+                            <option value="<?php echo esc_attr($value); ?>" <?php selected($map_style, $value); ?>>
+                                <?php echo esc_html($label); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="description">Wählen Sie den gewünschten Kartenstil aus</p>
                     </td>
                 </tr>
             </table>
