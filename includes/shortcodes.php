@@ -11,10 +11,7 @@ function wp_aprs_register_shortcodes() {
 function wp_aprs_map_shortcode($atts) {
     $positions = wp_aprs_get_all_positions();
     
-    if (empty($positions)) {
-        return '<p>Keine APRS-Positionen verfügbar.</p>';
-    }
-    
+    // Karte immer anzeigen, auch ohne Positionen
     $map_center_input = get_option('wp_aprs_map_center', 'JO63HH');
     $center = wp_aprs_parse_coordinates($map_center_input);
     
@@ -27,7 +24,7 @@ function wp_aprs_map_shortcode($atts) {
         }
     }
     
-    $map_style = get_option('wp_aprs_map_style', 'osm_standard');
+    $map_style = get_option('wp_aprs_map_style', 'topo');
     
     static $map_count = 0;
     $map_count++;
@@ -36,7 +33,7 @@ function wp_aprs_map_shortcode($atts) {
     $map_data = array(
         'id' => $map_id,
         'center' => $center,
-        'positions' => $positions,
+        'positions' => $positions ?: array(),
         'style' => $size_style,
         'map_style' => $map_style
     );
@@ -47,13 +44,19 @@ function wp_aprs_map_shortcode($atts) {
     
     wp_localize_script('wp-aprs-map', 'wpAprsMapData_' . $map_count, $map_data);
     
-    return '<div id="' . $map_id . '" class="wp-aprs-map" style="' . $size_style . '"></div>';
+    $output = '<div id="' . $map_id . '" class="wp-aprs-map" style="' . $size_style . '"></div>';
+    
+    if (empty($positions)) {
+        $output .= '<p style="text-align: center; color: #666; font-style: italic;">Keine APRS-Positionen verfügbar. Karte zeigt den eingestellten Mittelpunkt.</p>';
+    }
+    
+    return $output;
 }
 
 function wp_aprs_callsigns_shortcode($atts) {
     $callsigns = array();
     
-    $callsigns_1 = get_option('wp_aprs_callsigns_1');
+    $callsigns_1 = get_option('wp_aprs_callsigns_1', array('DO6DAD-7', 'DO0RM-10'));
     if (!empty($callsigns_1)) {
         $callsigns = array_merge($callsigns, $callsigns_1);
     }
@@ -67,7 +70,7 @@ function wp_aprs_callsigns_shortcode($atts) {
     }
     
     if (empty($callsigns)) {
-        return '';
+        return '<p>Keine Rufzeichen konfiguriert.</p>';
     }
     
     sort($callsigns, SORT_NATURAL | SORT_FLAG_CASE);
