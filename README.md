@@ -53,15 +53,15 @@ Zeigt eine interaktive Karte mit allen konfigurierten Rufzeichen.
 [WP-APRS-Callsigns]
 Listet alle konfigurierten Rufzeichen alphabetisch sortiert auf.
 
-📤 Import/Export
-Einstellungen exportieren
+## 📤 Import/Export
+### Einstellungen exportieren
 In den Einstellungen auf "Exportieren" klicken
 
 Datei wp-aprs-export.cfg wird heruntergeladen
 
 Enthält alle Plugin-Einstellungen im JSON-Format
 
-Einstellungen importieren
+### Einstellungen importieren
 In den Einstellungen Datei auswählen
 
 Auf "Importieren" klicken
@@ -70,7 +70,7 @@ Alle Einstellungen werden übernommen
 
 Hinweis: Beim Import werden bestehende Einstellungen überschrieben!
 
-CSS Anpassungen
+## CSS Anpassungen
 .wp-aprs-map {
     /* Eigene Stile für die Karte */
     border: 2px solid #0073aa;
@@ -82,7 +82,7 @@ CSS Anpassungen
     font-size: 14px;
 }
 
-Filter und Actions
+## Filter und Actions
 Das Plugin bietet verschiedene Filter und Actions für Entwickler:
 
 // Eigene Kartenlayer hinzufügen
@@ -99,17 +99,17 @@ add_filter('wp_aprs_tile_layer_url', function($url, $style) {
     return $url;
 }, 10, 2);
 
-📋 Systemvoraussetzungen
+## 📋 Systemvoraussetzungen
 WordPress: 5.0 oder höher
 
 PHP: 7.4 oder höher
 
 Browser: Moderner Browser mit JavaScript-Unterstützung
 
-🐛 Fehler melden
+## 🐛 Fehler melden
 Bitte melden Sie Fehler oder Feature Requests auf GitHub.
 
-🔄 Changelog
+## 🔄 Changelog
 1.1.0 - [Datum]
 ✅ Import/Export Funktion hinzugefügt
 
@@ -136,17 +136,17 @@ Bitte melden Sie Fehler oder Feature Requests auf GitHub.
 
 ✅ Admin-Einstellungsseite
 
-📄 Lizenz
+## 📄 Lizenz
 GPL v2 or later - Lizenz ansehen
 
-👥 Beitragende
+## 👥 Beitragende
 Steffan Jeschek (DO6DAD.de) - Entwicklung und Wartung
 
 OpenStreetMap Contributors - Kartenlayer
 
 Leaflet.js Team - Kartenbibliothek
 
-🔗 Links
+## 🔗 Links
 GitHub Repository
 
 APRS.fi - APRS API Service
