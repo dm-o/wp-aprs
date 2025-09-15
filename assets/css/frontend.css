@@ -18,3 +18,20 @@
 .leaflet-popup-content strong {
     color: #0073aa;
 }
+
+/* Responsive Design */
+@media screen and (max-width: 782px) {
+    .wp-aprs-map {
+        height: 300px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .wp-aprs-map {
+        height: 250px;
+    }
+    
+    .leaflet-popup-content {
+        font-size: 12px;
+    }
+}

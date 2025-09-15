@@ -247,3 +247,10 @@ input[name="api_key_2"] {
 .more-callsigns-toggle:hover {
     color: #005177;
 }
+
+.api-key-status {
+    display: block;
+    font-size: 12px;
+    margin-top: 5px;
+    font-weight: bold;
+}

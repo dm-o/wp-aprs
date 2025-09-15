@@ -18,4 +18,6 @@ delete_option('wp_aprs_callsigns_2');
 delete_option('wp_aprs_more_callsigns');
 delete_option('wp_aprs_map_center');
 delete_option('wp_aprs_map_size');
+delete_option('wp_aprs_map_style');
 delete_option('wp_aprs_cache');
+delete_option('wp_aprs_installed');
