@@ -41,8 +41,10 @@ function wp_aprs_settings_page() {
         wp_aprs_handle_import();
     }
     
-    if (isset($_POST['export_settings']) && check_admin_referer('wp_aprs_import_export_nonce')) {
-        wp_aprs_handle_export();
+    if (isset($_GET['export_confirmed']) && $_GET['export_confirmed'] === '1') {
+        if (check_admin_referer('wp_aprs_export_nonce', 'export_nonce')) {
+            wp_aprs_handle_export();
+        }
     }
     
     // Speichern der Einstellungen
@@ -102,6 +104,15 @@ function wp_aprs_settings_page() {
         }
         
         echo '<div class="notice notice-success"><p>Einstellungen erfolgreich gespeichert.</p></div>';
+    }
+    
+    // Export-Status anzeigen
+    if (isset($_GET['export_status'])) {
+        if ($_GET['export_status'] === 'success') {
+            echo '<div class="notice notice-success"><p>✅ Export erfolgreich abgeschlossen.</p></div>';
+        } elseif ($_GET['export_status'] === 'cancelled') {
+            echo '<div class="notice notice-warning"><p>❌ Export abgebrochen.</p></div>';
+        }
     }
     
     // Aktuelle Einstellungen laden
@@ -241,6 +252,20 @@ function wp_aprs_settings_page() {
         <hr style="margin: 40px 0;">
         
         <h2>Import/Export Einstellungen</h2>
+        
+        <div id="export-warning" style="display: none;">
+            <div class="notice notice-warning">
+                <h3>⚠️ Sicherheitswarnung</h3>
+                <p><strong>Achtung: Die Datei enthält APRS.fi-API-Schlüssel im Klartext!</strong></p>
+                <p>Sind Sie sicher, dass Sie sie herunterladen wollen?</p>
+                <p>
+                    <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=wp-aprs&export_confirmed=1'), 'wp_aprs_export_nonce', 'export_nonce'); ?>" 
+                       class="button button-primary" id="export-confirm">✅ Ja, herunterladen</a>
+                    <button class="button button-secondary" id="export-cancel">❌ Nein - Abbruch!</button>
+                </p>
+            </div>
+        </div>
+        
         <form method="post" action="" enctype="multipart/form-data">
             <?php wp_nonce_field('wp_aprs_import_export_nonce'); ?>
             
@@ -257,7 +282,7 @@ function wp_aprs_settings_page() {
                     <th scope="row">Einstellungen exportieren</th>
                     <td>
                         <p class="description">Laden Sie Ihre aktuellen Einstellungen als Konfigurationsdatei herunter</p>
-                        <?php submit_button('Exportieren', 'secondary', 'export_settings', false); ?>
+                        <button type="button" class="button button-secondary" id="start-export">Export starten</button>
                     </td>
                 </tr>
             </table>
@@ -286,6 +311,19 @@ function wp_aprs_settings_page() {
         $('input[id^="callsign_"]').each(function() {
             $(this).attr('title', 'Hier bitte das Rufzeichen oder die Objekt-Bezeichnung inkl. Suffix eingeben (Bsp: DO6DAD-7).');
         });
+        
+        // Export Bestätigung
+        $('#start-export').click(function(e) {
+            e.preventDefault();
+            $('#export-warning').slideDown();
+        });
+        
+        $('#export-cancel').click(function(e) {
+            e.preventDefault();
+            $('#export-warning').slideUp();
+            // Redirect mit Abbruch-Status
+            window.location.href = '<?php echo admin_url('admin.php?page=wp-aprs&export_status=cancelled'); ?>';
+        });
     });
     </script>
     <?php
@@ -306,9 +344,20 @@ function wp_aprs_handle_import() {
         return;
     }
     
-    // Alle Einstellungen importieren
+    // Nur WP-APRS Einstellungen importieren
+    $allowed_settings = array(
+        'wp_aprs_api_key_1',
+        'wp_aprs_api_key_2',
+        'wp_aprs_callsigns_1',
+        'wp_aprs_callsigns_2',
+        'wp_aprs_more_callsigns',
+        'wp_aprs_map_center',
+        'wp_aprs_map_size',
+        'wp_aprs_map_style'
+    );
+    
     foreach ($settings as $key => $value) {
-        if (strpos($key, 'wp_aprs_') === 0) {
+        if (in_array($key, $allowed_settings)) {
             update_option($key, $value);
         }
     }
@@ -318,25 +367,45 @@ function wp_aprs_handle_import() {
 
 // Export-Funktion
 function wp_aprs_handle_export() {
-    $settings = array();
-    $all_options = wp_load_alloptions();
+    // Nur Konfigurationseinstellungen exportieren (keine API-Daten)
+    $export_settings = array(
+        'wp_aprs_api_key_1' => get_option('wp_aprs_api_key_1', ''),
+        'wp_aprs_api_key_2' => get_option('wp_aprs_api_key_2', ''),
+        'wp_aprs_callsigns_1' => get_option('wp_aprs_callsigns_1', array('DO6DAD-7', 'DO0RM-10')),
+        'wp_aprs_callsigns_2' => get_option('wp_aprs_callsigns_2', array()),
+        'wp_aprs_more_callsigns' => get_option('wp_aprs_more_callsigns', false),
+        'wp_aprs_map_center' => get_option('wp_aprs_map_center', 'JO63HH'),
+        'wp_aprs_map_size' => get_option('wp_aprs_map_size', ''),
+        'wp_aprs_map_style' => get_option('wp_aprs_map_style', 'topo')
+    );
     
-    // Nur WP-APRS Einstellungen sammeln
-    foreach ($all_options as $key => $value) {
-        if (strpos($key, 'wp_aprs_') === 0) {
-            $settings[$key] = maybe_unserialize($value);
-        }
-    }
+    // Meta-Informationen hinzufügen
+    $export_data = array(
+        'version' => WP_APRS_VERSION,
+        'export_date' => current_time('mysql'),
+        'site_url' => get_site_url(),
+        'settings' => $export_settings
+    );
     
     // JSON exportieren
-    $json = json_encode($settings, JSON_PRETTY_PRINT);
+    $json = json_encode($export_data, JSON_PRETTY_PRINT);
+    
+    // Temporäre Datei erstellen
+    $temp_file = wp_tempnam('wp-aprs-export');
+    file_put_contents($temp_file, $json);
     
     // Datei downloaden
     header('Content-Type: application/json');
     header('Content-Disposition: attachment; filename="wp-aprs-export.cfg"');
-    header('Content-Length: ' . strlen($json));
+    header('Content-Length: ' . filesize($temp_file));
+    header('Pragma: no-cache');
+    header('Expires: 0');
     
-    echo $json;
+    readfile($temp_file);
+    
+    // Temporäre Datei löschen
+    unlink($temp_file);
+    
     exit;
 }
 
